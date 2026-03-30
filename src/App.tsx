@@ -473,6 +473,27 @@ const CreateOrder = ({
         lastOrderAt: now
       });
 
+      // 4. Update Machine Variants
+      const machine = machines.find(m => m.name === machineName);
+      const cleanVariant = variant.trim();
+      if (machine) {
+        if (cleanVariant && !machine.variants.includes(cleanVariant)) {
+          await updateDoc(doc(db, 'machines', machine.id), {
+            variants: [...machine.variants, cleanVariant],
+            updatedAt: now
+          });
+        }
+      } else {
+        const machineRef = doc(collection(db, 'machines'));
+        await setDoc(machineRef, {
+          name: machineName,
+          defaultPrice: price,
+          variants: cleanVariant ? [cleanVariant] : [],
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+
       showToast('訂單已更新/建立！');
 
       // Handle Modes
