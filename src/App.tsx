@@ -724,8 +724,42 @@ const OrdersList = ({
               <h4 className="font-bold text-lg text-ink">{order.customerName}</h4>
               <p className="text-xs text-ink/40">{order.createdAt ? format(toZonedTime(new Date(order.createdAt), TAIWAN_TZ), 'yyyy/MM/dd HH:mm') : '無日期'}</p>
             </div>
-            <div className="text-right">
-              <p className="text-xl font-bold text-ink">NT${order.totalAmount}</p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-xl font-bold text-ink">NT${order.totalAmount}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setConfirmModal({
+                    show: true,
+                    title: '刪除訂單',
+                    message: `確定要刪除 ${order.customerName} 的這筆訂單嗎？`,
+                    type: 'danger',
+                    onConfirm: async () => {
+                      try {
+                        await deleteDoc(doc(db, 'orders', order.id));
+                        
+                        // Update customer stats
+                        const customerSnap = await getDoc(doc(db, 'customers', order.customerId));
+                        if (customerSnap.exists()) {
+                          const customerData = customerSnap.data() as Customer;
+                          await updateDoc(doc(db, 'customers', order.customerId), {
+                            totalSpent: Math.max(0, customerData.totalSpent - order.totalAmount),
+                            orderCount: Math.max(0, customerData.orderCount - 1)
+                          });
+                        }
+
+                        showToast('訂單已刪除');
+                      } catch (err) {
+                        handleFirestoreError(err, OperationType.DELETE, `orders/${order.id}`);
+                      }
+                    }
+                  });
+                }}
+                className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
             </div>
           </div>
           <div className="space-y-2 mb-4">
@@ -747,40 +781,6 @@ const OrdersList = ({
                 </div>
               );
             })}
-          </div>
-          <div className="flex items-center justify-end pt-4 border-t border-divider">
-            <button 
-              onClick={() => {
-                setConfirmModal({
-                  show: true,
-                  title: '刪除訂單',
-                  message: '確定要刪除此訂單嗎？',
-                  type: 'danger',
-                  onConfirm: async () => {
-                    try {
-                      await deleteDoc(doc(db, 'orders', order.id));
-                      
-                      // Update customer stats
-                      const customerSnap = await getDoc(doc(db, 'customers', order.customerId));
-                      if (customerSnap.exists()) {
-                        const customerData = customerSnap.data() as Customer;
-                        await updateDoc(doc(db, 'customers', order.customerId), {
-                          totalSpent: Math.max(0, customerData.totalSpent - order.totalAmount),
-                          orderCount: Math.max(0, customerData.orderCount - 1)
-                        });
-                      }
-
-                      showToast('訂單已刪除');
-                    } catch (err) {
-                      handleFirestoreError(err, OperationType.DELETE, `orders/${order.id}`);
-                    }
-                  }
-                });
-              }}
-              className="p-2 bg-background text-red-400 rounded-xl"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
           </div>
         </motion.div>
       ))}
@@ -836,7 +836,53 @@ const OrdersList = ({
                 </div>
                 <div className="flex gap-2 pt-4">
                   <button onClick={() => setEditingItem(null)} className="flex-1 py-4 bg-background text-ink rounded-2xl font-bold">取消</button>
-                  <button onClick={() => handleUpdateItem(editingItem.orderId, editingItem.item)} className="flex-1 py-4 bg-primary-blue text-white rounded-2xl font-bold">儲存</button>
+                  <button 
+                    onClick={() => {
+                      setConfirmModal({
+                        show: true,
+                        title: '刪除項目',
+                        message: `確定要從訂單中刪除 ${editingItem.item.machineName} 嗎？`,
+                        type: 'danger',
+                        onConfirm: async () => {
+                          const order = orders.find(o => o.id === editingItem.orderId);
+                          if (!order) return;
+                          const newItems = order.items.filter(i => i.id !== editingItem.item.id);
+                          const newTotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
+                          
+                          try {
+                            if (newItems.length === 0) {
+                              await deleteDoc(doc(db, 'orders', order.id));
+                            } else {
+                              await updateDoc(doc(db, 'orders', order.id), {
+                                items: newItems,
+                                totalAmount: newTotal,
+                                updatedAt: new Date().toISOString()
+                              });
+                            }
+                            
+                            // Update customer stats
+                            const customerSnap = await getDoc(doc(db, 'customers', order.customerId));
+                            if (customerSnap.exists()) {
+                              const customerData = customerSnap.data() as Customer;
+                              await updateDoc(doc(db, 'customers', order.customerId), {
+                                totalSpent: Math.max(0, customerData.totalSpent - editingItem.item.subtotal),
+                                orderCount: newItems.length === 0 ? Math.max(0, customerData.orderCount - 1) : customerData.orderCount
+                              });
+                            }
+                            
+                            setEditingItem(null);
+                            showToast('項目已刪除');
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, `orders/${order.id}`);
+                          }
+                        }
+                      });
+                    }}
+                    className="p-4 bg-red-50 text-red-500 rounded-2xl"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => handleUpdateItem(editingItem.orderId, editingItem.item)} className="flex-[2] py-4 bg-primary-blue text-white rounded-2xl font-bold">儲存</button>
                 </div>
               </div>
             </motion.div>
@@ -1355,7 +1401,8 @@ const CustomerDetailView = ({
   settings,
   onClose, 
   showToast,
-  onCopyNotification
+  onCopyNotification,
+  setConfirmModal
 }: { 
   customer: Customer, 
   orders: Order[], 
@@ -1365,7 +1412,8 @@ const CustomerDetailView = ({
   settings: SystemSettings | null,
   onClose: () => void, 
   showToast: (m: string, t?: 'success' | 'error') => void,
-  onCopyNotification: () => void
+  onCopyNotification: () => void,
+  setConfirmModal: (m: any) => void
 }) => {
   const customerOrders = orders.filter(o => o.customerId === customer.id);
   const [editingItem, setEditingItem] = useState<{ orderId: string, item: OrderItem } | null>(null);
@@ -1531,6 +1579,38 @@ const CustomerDetailView = ({
           <div key={order.id} className="bg-card-white p-6 rounded-3xl card-shadow border-l-4 border-primary-blue">
             <div className="flex justify-between items-center mb-4">
               <span className="text-xs font-bold text-ink/40">{order.createdAt ? format(toZonedTime(new Date(order.createdAt), TAIWAN_TZ), 'yyyy/MM/dd HH:mm') : '無日期'}</span>
+              <button 
+                onClick={() => {
+                  setConfirmModal({
+                    show: true,
+                    title: '刪除訂單',
+                    message: `確定要刪除這筆訂單嗎？`,
+                    type: 'danger',
+                    onConfirm: async () => {
+                      try {
+                        await deleteDoc(doc(db, 'orders', order.id));
+                        
+                        // Update customer stats
+                        const customerSnap = await getDoc(doc(db, 'customers', order.customerId));
+                        if (customerSnap.exists()) {
+                          const customerData = customerSnap.data() as Customer;
+                          await updateDoc(doc(db, 'customers', order.customerId), {
+                            totalSpent: Math.max(0, customerData.totalSpent - order.totalAmount),
+                            orderCount: Math.max(0, customerData.orderCount - 1)
+                          });
+                        }
+
+                        showToast('訂單已刪除');
+                      } catch (err) {
+                        handleFirestoreError(err, OperationType.DELETE, `orders/${order.id}`);
+                      }
+                    }
+                  });
+                }}
+                className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
             <div className="space-y-4">
               {order.items.map(item => {
@@ -1635,7 +1715,53 @@ const CustomerDetailView = ({
                 </div>
                 <div className="flex gap-2 pt-4">
                   <button onClick={() => setEditingItem(null)} className="flex-1 py-4 bg-background text-ink rounded-2xl font-bold">取消</button>
-                  <button onClick={() => handleUpdateItem(editingItem.orderId, editingItem.item)} className="flex-1 py-4 bg-primary-blue text-white rounded-2xl font-bold">儲存</button>
+                  <button 
+                    onClick={() => {
+                      setConfirmModal({
+                        show: true,
+                        title: '刪除項目',
+                        message: `確定要從訂單中刪除 ${editingItem.item.machineName} 嗎？`,
+                        type: 'danger',
+                        onConfirm: async () => {
+                          const order = orders.find(o => o.id === editingItem.orderId);
+                          if (!order) return;
+                          const newItems = order.items.filter(i => i.id !== editingItem.item.id);
+                          const newTotal = newItems.reduce((sum, i) => sum + i.subtotal, 0);
+                          
+                          try {
+                            if (newItems.length === 0) {
+                              await deleteDoc(doc(db, 'orders', order.id));
+                            } else {
+                              await updateDoc(doc(db, 'orders', order.id), {
+                                items: newItems,
+                                totalAmount: newTotal,
+                                updatedAt: new Date().toISOString()
+                              });
+                            }
+                            
+                            // Update customer stats
+                            const customerSnap = await getDoc(doc(db, 'customers', order.customerId));
+                            if (customerSnap.exists()) {
+                              const customerData = customerSnap.data() as Customer;
+                              await updateDoc(doc(db, 'customers', order.customerId), {
+                                totalSpent: Math.max(0, customerData.totalSpent - editingItem.item.subtotal),
+                                orderCount: newItems.length === 0 ? Math.max(0, customerData.orderCount - 1) : customerData.orderCount
+                              });
+                            }
+                            
+                            setEditingItem(null);
+                            showToast('項目已刪除');
+                          } catch (err) {
+                            handleFirestoreError(err, OperationType.WRITE, `orders/${order.id}`);
+                          }
+                        }
+                      });
+                    }}
+                    className="p-4 bg-red-50 text-red-500 rounded-2xl"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => handleUpdateItem(editingItem.orderId, editingItem.item)} className="flex-[2] py-4 bg-primary-blue text-white rounded-2xl font-bold">儲存</button>
                 </div>
               </div>
             </motion.div>
@@ -2557,6 +2683,7 @@ ${settings.notificationTemplate}`;
                 onClose={() => setSelectedCustomer(null)}
                 showToast={showToast}
                 onCopyNotification={() => copyCustomerNotification(selectedCustomer)}
+                setConfirmModal={setConfirmModal}
               />
             </motion.div>
           )}
