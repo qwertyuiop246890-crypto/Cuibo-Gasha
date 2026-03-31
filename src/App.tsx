@@ -2033,15 +2033,13 @@ const PrintPreview = ({
                 table {
                   width: 100%;
                   border-collapse: collapse;
+                  table-layout: fixed;
                 }
                 thead {
                   display: table-header-group;
                 }
                 tr {
                   break-inside: avoid;
-                }
-                .print-header {
-                  display: table-header-group;
                 }
               }
             `}</style>
@@ -2075,12 +2073,12 @@ const PrintPreview = ({
                           </th>
                         </tr>
                         <tr className="border-b-2 border-ink text-sm bg-ink/5 print:bg-transparent">
-                          <th className="py-2 px-2 w-8 text-center"></th>
-                          <th className="py-2 px-2">機台名稱</th>
-                          <th className="py-2 px-2">款式</th>
-                          <th className="py-2 px-2">單價</th>
-                          <th className="py-2 px-2">數量</th>
-                          <th className="py-2 px-2 text-right">小計</th>
+                          <th className="py-2 px-2 w-[8%] text-center"></th>
+                          <th className="py-2 px-2 w-[40%]">機台名稱</th>
+                          <th className="py-2 px-2 w-[22%]">款式</th>
+                          <th className="py-2 px-2 w-[10%]">單價</th>
+                          <th className="py-2 px-2 w-[8%]">數量</th>
+                          <th className="py-2 px-2 w-[12%] text-right">小計</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3001,13 +2999,13 @@ ${settings.notificationTemplate}`;
                   <p><strong>顧客：</strong>{selectedOrder.customerName}</p>
                   <p><strong>訂單編號：</strong>{selectedOrder.id}</p>
                 </div>
-                <table className="w-full border-collapse mb-8">
+                <table className="w-full border-collapse mb-8" style={{ tableLayout: 'fixed' }}>
                   <thead>
                     <tr className="border-b-2 border-black">
-                      <th className="w-8 text-center py-2"></th>
-                      <th className="text-left py-2">項目</th>
-                      <th className="text-center py-2">數量</th>
-                      <th className="text-right py-2">小計</th>
+                      <th className="w-[10%] text-center py-2"></th>
+                      <th className="w-[50%] text-left py-2">項目</th>
+                      <th className="w-[20%] text-center py-2">數量</th>
+                      <th className="w-[20%] text-right py-2">小計</th>
                     </tr>
                   </thead>
                   <tbody>
