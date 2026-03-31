@@ -10,11 +10,11 @@
         "lineId": { "type": "string", "description": "LINE ID" },
         "fbName": { "type": "string", "description": "Facebook name" },
         "totalSpent": { "type": "number", "description": "Total amount spent" },
-        "orderCount": { "type": "integer", "description": "Number of orders" },
+        "totalItems": { "type": "integer", "description": "Total number of gachapons purchased" },
         "lastOrderAt": { "type": "string", "format": "date-time", "description": "Last order timestamp" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
       },
-      "required": ["name", "totalSpent", "orderCount", "createdAt"]
+      "required": ["name", "totalSpent", "totalItems", "createdAt"]
     },
     "orders": {
       "title": "Order",

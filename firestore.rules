@@ -12,7 +12,7 @@ service cloud.firestore {
     //   - lineId: string (optional)
     //   - fbName: string (optional)
     //   - totalSpent: number (required)
-    //   - orderCount: number (required)
+    //   - totalItems: number (required)
     //   - lastOrderAt: string (optional, date-time)
     //   - createdAt: string (required, date-time)
     //
@@ -83,7 +83,7 @@ service cloud.firestore {
     function isValidCustomer(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.totalSpent is number && data.totalSpent >= 0 &&
-             data.orderCount is number && data.orderCount >= 0 &&
+             data.totalItems is number && data.totalItems >= 0 &&
              isValidDateString(data.createdAt);
     }
 
