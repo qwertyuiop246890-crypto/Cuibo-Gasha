@@ -2062,7 +2062,7 @@ const PrintPreview = ({
                     <table className="w-full text-left">
                       <thead>
                         <tr className="print-header">
-                          <th colSpan={5} className="pb-4">
+                          <th colSpan={6} className="pb-4">
                             <div className="text-center border-b-2 border-ink pb-4 mb-4">
                               <h1 className="text-2xl font-bold text-ink">
                                 {customer.name} 扭蛋訂單明細
@@ -2075,6 +2075,7 @@ const PrintPreview = ({
                           </th>
                         </tr>
                         <tr className="border-b-2 border-ink text-sm bg-ink/5 print:bg-transparent">
+                          <th className="py-2 px-2 w-8 text-center"></th>
                           <th className="py-2 px-2">機台名稱</th>
                           <th className="py-2 px-2">款式</th>
                           <th className="py-2 px-2">單價</th>
@@ -2085,6 +2086,9 @@ const PrintPreview = ({
                       <tbody>
                         {allItems.map((item, idx) => (
                           <tr key={idx} className="border-b border-divider text-sm print:border-ink/10">
+                            <td className="py-2 px-2 text-center align-middle">
+                              <div className="w-4 h-4 border-2 border-ink/40 rounded-sm mx-auto print:border-black"></div>
+                            </td>
                             <td className="py-2 px-2">
                               <div className="font-medium">{item.machineName}</div>
                               <div className="text-[10px] text-ink/30 print:text-ink/50">{formatDateTime(item.createdAt)}</div>
@@ -2098,7 +2102,7 @@ const PrintPreview = ({
                       </tbody>
                       <tfoot>
                         <tr>
-                          <td colSpan={4} className="py-4 text-right font-bold text-sm">總計金額：</td>
+                          <td colSpan={5} className="py-4 text-right font-bold text-sm">總計金額：</td>
                           <td className="py-4 text-right font-bold text-xl text-primary-blue print:text-ink">NT${customer.totalSpent}</td>
                         </tr>
                       </tfoot>
@@ -3000,6 +3004,7 @@ ${settings.notificationTemplate}`;
                 <table className="w-full border-collapse mb-8">
                   <thead>
                     <tr className="border-b-2 border-black">
+                      <th className="w-8 text-center py-2"></th>
                       <th className="text-left py-2">項目</th>
                       <th className="text-center py-2">數量</th>
                       <th className="text-right py-2">小計</th>
@@ -3008,6 +3013,9 @@ ${settings.notificationTemplate}`;
                   <tbody>
                     {selectedOrder.items.map((item, idx) => (
                       <tr key={idx} className="border-b border-gray-200">
+                        <td className="text-center py-2 align-middle">
+                          <div className="w-4 h-4 border-2 border-black rounded-sm mx-auto"></div>
+                        </td>
                         <td className="py-2">
                           <div>{item.machineName} {item.variant && `(${item.variant})`}</div>
                           <div className="text-[10px] text-gray-400">{formatDateTime(item.createdAt)}</div>
